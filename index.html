@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Gestionale Rimborso Spese</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6 font-sans">
+  <div class="max-w-3xl mx-auto space-y-6">
+    <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center">
+      <h1 class="text-xl font-bold">Gestionale Spese Trasferte</h1>
+      <button onclick="addTrip()" class="bg-blue-600 text-white px-4 py-2 rounded">+ Nuova Trasferta</button>
+    </div>
+    
+    <div class="bg-blue-900 text-white p-6 rounded-xl shadow flex justify-between items-center">
+      <span class="font-semibold uppercase">Totale Generale Da Rimborsare:</span>
+      <h2 id="grand-total" class="text-3xl font-extrabold">€ 0.00</h2>
+    </div>
+
+    <div id="trips-container" class="space-y-6"></div>
+  </div>
+
+  <script>
+    let data = JSON.parse(localStorage.getItem('rimborsi')) || [];
+
+    function saveData() {
+      localStorage.setItem('rimborsi', JSON.stringify(data));
+      render();
+    }
+
+    function addTrip() {
+      const title = prompt("Nome della Trasferta (es. Trasferta Milano):");
+      if (title) { data.push({ id: Date.now(), title, expenses: [] }); saveData(); }
+    }
+
+    function addExpense(tripId) {
+      const name = prompt("Descrizione Spesa (es. Pranzo, Treno):");
+      const amount = parseFloat(prompt("Importo (€):"));
+      if (name && !isNaN(amount)) {
+        data.find(t => t.id === tripId).expenses.push({ name, amount });
+        saveData();
+      }
+    }
+
+    function render() {
+      const container = document.getElementById('trips-container');
+      container.innerHTML = '';
+      let grandTotal = 0;
+
+      data.forEach(trip => {
+        const total = trip.expenses.reduce((s, e) => s + e.amount, 0);
+        grandTotal += total;
+        container.innerHTML += `
+          <div class="bg-white rounded-xl shadow p-4 space-y-3">
+            <h3 class="font-bold text-lg text-gray-800">${trip.title}</h3>
+            <ul class="divide-y">
+              ${trip.expenses.map(e => `<li class="py-1 flex justify-between"><span>${e.name}</span><b>€ ${e.amount.toFixed(2)}</b></li>`).join('')}
+            </ul>
+            <div class="pt-2 border-t flex justify-between items-center">
+              <button onclick="addExpense(${trip.id})" class="bg-green-600 text-white text-xs px-3 py-1 rounded">+ Spesa</button>
+              <div><span>Totale Trasferta: </span><b class="text-blue-600 text-lg">€ ${total.toFixed(2)}</b></div>
+            </div>
+          </div>`;
+      });
+      document.getElementById('grand-total').innerText = '€ ' + grandTotal.toFixed(2);
+    }
+    render();
+  </script>
+</body>
+</html>
