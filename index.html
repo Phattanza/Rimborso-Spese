@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionale Rimborso Spese</title>
   
-  <!-- Icone per Schermata Home dello Smartphone -->
+  <!-- Icone per Schermata Home del telefono -->
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2845/2845570.png">
   <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2845/2845570.png">
 
@@ -48,17 +48,15 @@
 
   <script>
     // CONFIGURAZIONE DATABASE CLOUD (JSONBin.io)
-    // Sostituisci questi due valori con quelli del tuo account JSONBin.io:
-    const JSONBIN_BIN_ID = "6a9d97fbda38895dfe405d1b";
-    const JSONBIN_API_KEY = "$2a$10$q23.QIS.SieOcelJfYM/6ukMPOcQNjeq1rEjrbtMSA9yQMtRI1jyW";
+    const JSONBIN_BIN_ID = "IL_TUO_BIN_ID";
+    const JSONBIN_API_KEY = "LA_TUA_API_KEY";
 
     let data = [];
 
     // Carica dati dal Cloud all'avvio
     async function loadDataFromCloud() {
       updateSyncStatus("Sincronizzazione in corso...");
-      if (JSONBIN_BIN_ID === "IL_TUO_BIN_ID") {
-        // Fallback su LocalStorage se non è stato ancora configurato JSONBin
+      if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "IL_TUO_BIN_ID") {
         data = JSON.parse(localStorage.getItem('rimborsi')) || [];
         updateSyncStatus("Modalità Locale (Configura Cloud)");
         render();
@@ -70,8 +68,26 @@
           headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
         const json = await res.json();
-        data = json.record || [];
-        localStorage.setItem('rimborsi', JSON.stringify(data));
+        
+        // Estrazione flessibile dati (supporta sia array sia oggetto { rimborsi: [...] })
+        let record = json.record;
+        if (record && record.rimborsi && Array.isArray(record.rimborsi)) {
+          data = record.rimborsi;
+        } else if (Array.isArray(record)) {
+          data = record;
+        } else {
+          data = [];
+        }
+
+        // Se il Cloud è ancora vuoto ma c'erano dati salvati in locale, sincronizza i dati locali sul Cloud
+        const localData = JSON.parse(localStorage.getItem('rimborsi')) || [];
+        if (data.length === 0 && localData.length > 0) {
+          data = localData;
+          await saveData();
+        } else {
+          localStorage.setItem('rimborsi', JSON.stringify(data));
+        }
+
         updateSyncStatus("Sincronizzato ✓");
         render();
       } catch (err) {
@@ -87,7 +103,7 @@
       localStorage.setItem('rimborsi', JSON.stringify(data));
       render();
 
-      if (JSONBIN_BIN_ID !== "IL_TUO_BIN_ID") {
+      if (JSONBIN_BIN_ID && JSONBIN_BIN_ID !== "IL_TUO_BIN_ID") {
         updateSyncStatus("Salvataggio Cloud...");
         try {
           await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
@@ -96,7 +112,7 @@
               'Content-Type': 'application/json',
               'X-Master-Key': JSONBIN_API_KEY
             },
-            body: JSON.stringify(data)
+            body: JSON.stringify({ rimborsi: data })
           });
           updateSyncStatus("Sincronizzato ✓");
         } catch (err) {
@@ -252,7 +268,6 @@
       document.getElementById('trip-count').innerText = data.length + ' Trasferte';
     }
 
-    // Inizio caricamento
     loadDataFromCloud();
   </script>
 </body>
