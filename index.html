@@ -2,21 +2,36 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionale Rimborso Spese</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-6 font-sans">
+<body class="bg-gray-100 p-4 sm:p-6 font-sans">
   <div class="max-w-3xl mx-auto space-y-6">
-    <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center">
-      <h1 class="text-xl font-bold">Gestionale Spese Trasferte</h1>
-      <button onclick="addTrip()" class="bg-blue-600 text-white px-4 py-2 rounded">+ Nuova Trasferta</button>
+    
+    <!-- Header -->
+    <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center flex-wrap gap-4">
+      <div>
+        <h1 class="text-xl font-bold text-gray-800">Gestionale Spese Trasferte</h1>
+        <p class="text-xs text-gray-500">Traccia le spese e i rimborsi aziendali</p>
+      </div>
+      <button onclick="addTrip()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+        + Nuova Trasferta
+      </button>
     </div>
     
+    <!-- Totale Generale Da Rimborsare (solo non pagati) -->
     <div class="bg-blue-900 text-white p-6 rounded-xl shadow flex justify-between items-center">
-      <span class="font-semibold uppercase">Totale Generale Da Rimborsare:</span>
-      <h2 id="grand-total" class="text-3xl font-extrabold">€ 0.00</h2>
+      <div>
+        <span class="text-xs uppercase font-semibold opacity-80 tracking-wider">Totale Generale Da Rimborsare</span>
+        <h2 id="grand-total" class="text-3xl font-extrabold mt-1">€ 0.00</h2>
+      </div>
+      <div class="text-right">
+        <span id="trip-count" class="text-xs opacity-80">0 Trasferte</span>
+      </div>
     </div>
 
+    <!-- Contenitore Trasferte -->
     <div id="trips-container" class="space-y-6"></div>
   </div>
 
@@ -30,14 +45,53 @@
 
     function addTrip() {
       const title = prompt("Nome della Trasferta (es. Trasferta Milano):");
-      if (title) { data.push({ id: Date.now(), title, expenses: [] }); saveData(); }
+      if (title && title.trim() !== "") {
+        data.push({ id: Date.now(), title: title.trim(), expenses: [] });
+        saveData();
+      }
+    }
+
+    function deleteTrip(tripId) {
+      if (confirm("Vuoi davvero eliminare questa trasferta e tutte le sue spese?")) {
+        data = data.filter(t => t.id !== tripId);
+        saveData();
+      }
     }
 
     function addExpense(tripId) {
-      const name = prompt("Descrizione Spesa (es. Pranzo, Treno):");
-      const amount = parseFloat(prompt("Importo (€):"));
-      if (name && !isNaN(amount)) {
-        data.find(t => t.id === tripId).expenses.push({ name, amount });
+      const name = prompt("Descrizione Spesa (es. Pranzo, Treno, Hotel):");
+      if (!name || name.trim() === "") return;
+      const amountStr = prompt("Importo (€):");
+      const amount = parseFloat(amountStr ? amountStr.replace(',', '.') : 0);
+      
+      if (isNaN(amount) || amount <= 0) {
+        alert("Inserisci un importo valido.");
+        return;
+      }
+
+      const trip = data.find(t => t.id === tripId);
+      if (trip) {
+        // La spesa parte come "Non Pagato" (paid: false)
+        trip.expenses.push({ id: Date.now(), name: name.trim(), amount: amount, paid: false });
+        saveData();
+      }
+    }
+
+    function togglePaid(tripId, expenseId) {
+      const trip = data.find(t => t.id === tripId);
+      if (trip) {
+        const expense = trip.expenses.find(e => e.id === expenseId);
+        if (expense) {
+          expense.paid = !expense.paid;
+          saveData();
+        }
+      }
+    }
+
+    function deleteExpense(tripId, expenseId) {
+      const trip = data.find(t => t.id === tripId);
+      if (trip) {
+        trip.expenses = trip.expenses.filter(e => e.id !== expenseId);
         saveData();
       }
     }
@@ -48,22 +102,73 @@
       let grandTotal = 0;
 
       data.forEach(trip => {
-        const total = trip.expenses.reduce((s, e) => s + e.amount, 0);
-        grandTotal += total;
-        container.innerHTML += `
-          <div class="bg-white rounded-xl shadow p-4 space-y-3">
-            <h3 class="font-bold text-lg text-gray-800">${trip.title}</h3>
-            <ul class="divide-y">
-              ${trip.expenses.map(e => `<li class="py-1 flex justify-between"><span>${e.name}</span><b>€ ${e.amount.toFixed(2)}</b></li>`).join('')}
+        // Calcola il totale considerando SOLO le spese NON PAGATE (paid == false)
+        const pendingExpenses = trip.expenses.filter(e => !e.paid);
+        const tripTotal = pendingExpenses.reduce((s, e) => s + e.amount, 0);
+        grandTotal += tripTotal;
+
+        const tripEl = document.createElement('div');
+        tripEl.className = 'bg-white rounded-xl shadow border border-gray-200 overflow-hidden';
+
+        let listHtml = '';
+        if (trip.expenses.length === 0) {
+          listHtml = '<p class="text-gray-400 text-xs italic p-3">Nessuna spesa inserita.</p>';
+        } else {
+          listHtml = `
+            <ul class="divide-y divide-gray-100 text-sm">
+              ${trip.expenses.map(e => `
+                <li class="p-3 flex justify-between items-center gap-2 ${e.paid ? 'bg-gray-50' : ''}">
+                  <div class="flex items-center gap-2 overflow-hidden">
+                    <span class="${e.paid ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} truncate">${e.name}</span>
+                  </div>
+                  <div class="flex items-center gap-3 shrink-0">
+                    <b class="${e.paid ? 'text-gray-400 line-through' : 'text-gray-900'}">€ ${e.amount.toFixed(2)}</b>
+                    
+                    <!-- Pulsante Stato Pagato / Non Pagato -->
+                    <button onclick="togglePaid(${trip.id}, ${e.id})" 
+                      class="text-xs font-semibold px-2.5 py-1 rounded transition ${
+                        e.paid 
+                          ? 'bg-green-100 text-green-700 border border-green-300' 
+                          : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                      }">
+                      ${e.paid ? '✓ Pagato' : '⏳ Non Pagato'}
+                    </button>
+
+                    <!-- Elimina Spesa -->
+                    <button onclick="deleteExpense(${trip.id}, ${e.id})" class="text-red-500 hover:text-red-700 font-bold text-lg px-1">&times;</button>
+                  </div>
+                </li>
+              `).join('')}
             </ul>
-            <div class="pt-2 border-t flex justify-between items-center">
-              <button onclick="addExpense(${trip.id})" class="bg-green-600 text-white text-xs px-3 py-1 rounded">+ Spesa</button>
-              <div><span>Totale Trasferta: </span><b class="text-blue-600 text-lg">€ ${total.toFixed(2)}</b></div>
+          `;
+        }
+
+        tripEl.innerHTML = `
+          <div class="bg-gray-800 text-white p-3.5 flex justify-between items-center">
+            <h3 class="font-bold text-base">${trip.title}</h3>
+            <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition">Elimina</button>
+          </div>
+          <div class="p-4 space-y-3">
+            ${listHtml}
+            <div class="pt-3 border-t flex justify-between items-center flex-wrap gap-2">
+              <button onclick="addExpense(${trip.id})" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition">
+                + Aggiungi Spesa
+              </button>
+              <div class="text-right">
+                <span class="text-xs text-gray-500 font-semibold uppercase">Da Rimborsare:</span>
+                <span class="text-lg font-bold text-blue-600 ml-1">€ ${tripTotal.toFixed(2)}</span>
+              </div>
             </div>
-          </div>`;
+          </div>
+        `;
+
+        container.appendChild(tripEl);
       });
+
       document.getElementById('grand-total').innerText = '€ ' + grandTotal.toFixed(2);
+      document.getElementById('trip-count').innerText = data.length + ' Trasferte';
     }
+
     render();
   </script>
 </body>
