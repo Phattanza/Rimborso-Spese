@@ -20,7 +20,7 @@
       </button>
     </div>
     
-    <!-- Totale Generale Da Rimborsare (solo non pagati) -->
+    <!-- Totale Generale Da Rimborsare (solo spese non pagate) -->
     <div class="bg-blue-900 text-white p-6 rounded-xl shadow flex justify-between items-center">
       <div>
         <span class="text-xs uppercase font-semibold opacity-80 tracking-wider">Totale Generale Da Rimborsare</span>
@@ -61,18 +61,24 @@
     function addExpense(tripId) {
       const name = prompt("Descrizione Spesa (es. Pranzo, Treno, Hotel):");
       if (!name || name.trim() === "") return;
+      
       const amountStr = prompt("Importo (€):");
       const amount = parseFloat(amountStr ? amountStr.replace(',', '.') : 0);
-      
       if (isNaN(amount) || amount <= 0) {
         alert("Inserisci un importo valido.");
         return;
       }
 
+      // Genera la data odierna predefinita (formato GG/MM/AAAA)
+      const today = new Date();
+      const defaultDate = String(today.getDate()).padStart(2, '0') + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + today.getFullYear();
+      
+      const dateStr = prompt("Data della spesa (GG/MM/AAAA):", defaultDate);
+      const date = dateStr && dateStr.trim() !== "" ? dateStr.trim() : defaultDate;
+
       const trip = data.find(t => t.id === tripId);
       if (trip) {
-        // La spesa parte come "Non Pagato" (paid: false)
-        trip.expenses.push({ id: Date.now(), name: name.trim(), amount: amount, paid: false });
+        trip.expenses.push({ id: Date.now(), date: date, name: name.trim(), amount: amount, paid: false });
         saveData();
       }
     }
@@ -89,10 +95,12 @@
     }
 
     function deleteExpense(tripId, expenseId) {
-      const trip = data.find(t => t.id === tripId);
-      if (trip) {
-        trip.expenses = trip.expenses.filter(e => e.id !== expenseId);
-        saveData();
+      if (confirm("Vuoi eliminare questa singola spesa?")) {
+        const trip = data.find(t => t.id === tripId);
+        if (trip) {
+          trip.expenses = trip.expenses.filter(e => e.id !== expenseId);
+          saveData();
+        }
       }
     }
 
@@ -102,7 +110,6 @@
       let grandTotal = 0;
 
       data.forEach(trip => {
-        // Calcola il totale considerando SOLO le spese NON PAGATE (paid == false)
         const pendingExpenses = trip.expenses.filter(e => !e.paid);
         const tripTotal = pendingExpenses.reduce((s, e) => s + e.amount, 0);
         grandTotal += tripTotal;
@@ -118,15 +125,16 @@
             <ul class="divide-y divide-gray-100 text-sm">
               ${trip.expenses.map(e => `
                 <li class="p-3 flex justify-between items-center gap-2 ${e.paid ? 'bg-gray-50' : ''}">
-                  <div class="flex items-center gap-2 overflow-hidden">
+                  <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 overflow-hidden">
+                    <span class="text-xs text-gray-400 font-mono shrink-0">${e.date || ''}</span>
                     <span class="${e.paid ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} truncate">${e.name}</span>
                   </div>
-                  <div class="flex items-center gap-3 shrink-0">
+                  <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                     <b class="${e.paid ? 'text-gray-400 line-through' : 'text-gray-900'}">€ ${e.amount.toFixed(2)}</b>
                     
-                    <!-- Pulsante Stato Pagato / Non Pagato -->
+                    <!-- Stato Pagato / Non Pagato -->
                     <button onclick="togglePaid(${trip.id}, ${e.id})" 
-                      class="text-xs font-semibold px-2.5 py-1 rounded transition ${
+                      class="text-xs font-semibold px-2 py-1 rounded transition ${
                         e.paid 
                           ? 'bg-green-100 text-green-700 border border-green-300' 
                           : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
@@ -134,8 +142,8 @@
                       ${e.paid ? '✓ Pagato' : '⏳ Non Pagato'}
                     </button>
 
-                    <!-- Elimina Spesa -->
-                    <button onclick="deleteExpense(${trip.id}, ${e.id})" class="text-red-500 hover:text-red-700 font-bold text-lg px-1">&times;</button>
+                    <!-- Elimina Singola Spesa -->
+                    <button onclick="deleteExpense(${trip.id}, ${e.id})" title="Elimina spesa" class="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold text-base px-2 py-0.5 rounded transition">&times;</button>
                   </div>
                 </li>
               `).join('')}
@@ -146,7 +154,7 @@
         tripEl.innerHTML = `
           <div class="bg-gray-800 text-white p-3.5 flex justify-between items-center">
             <h3 class="font-bold text-base">${trip.title}</h3>
-            <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition">Elimina</button>
+            <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition">Elimina Trasferta</button>
           </div>
           <div class="p-4 space-y-3">
             ${listHtml}
