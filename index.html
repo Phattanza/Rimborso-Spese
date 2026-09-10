@@ -5,40 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gestionale Rimborso Spese</title>
   
-  <!-- Icone per Schermata Home del telefono -->
+  <!-- Icone Schermata Home -->
   <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2845/2845570.png">
   <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/2845/2845570.png">
 
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 p-4 sm:p-6 font-sans">
+<body class="bg-gray-100 min-h-screen p-4 sm:p-6 font-sans antialiased text-gray-800">
   <div class="max-w-3xl mx-auto space-y-6">
     
     <!-- Header -->
-    <div class="bg-white p-6 rounded-xl shadow flex justify-between items-center flex-wrap gap-4">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex justify-between items-center flex-wrap gap-4">
       <div>
-        <h1 class="text-xl font-bold text-gray-800">Gestionale Spese Trasferte</h1>
-        <p class="text-xs text-gray-500">Traccia le spese e i rimborsi aziendali (Sincronizzato Cloud)</p>
+        <h1 class="text-xl font-bold text-gray-900">Gestionale Spese Trasferte</h1>
+        <p class="text-xs text-gray-500 mt-0.5">Traccia chilometri e rimborsi aziendali</p>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="loadDataFromCloud()" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold px-3 py-2 rounded-lg text-xs transition" title="Aggiorna dati">
-          🔄 Ricarica
+        <button onclick="loadDataFromCloud()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-2 rounded-xl text-xs transition flex items-center gap-1">
+          🔄 Sync
         </button>
-        <button onclick="addTrip()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
+        <button onclick="openTripModal()" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-4 py-2 rounded-xl text-sm transition shadow-sm">
           + Nuova Trasferta
         </button>
       </div>
     </div>
     
     <!-- Totale Generale Da Rimborsare -->
-    <div class="bg-blue-900 text-white p-6 rounded-xl shadow flex justify-between items-center">
+    <div class="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-6 rounded-2xl shadow-md flex justify-between items-center">
       <div>
-        <span class="text-xs uppercase font-semibold opacity-80 tracking-wider">Totale Generale Da Rimborsare</span>
-        <h2 id="grand-total" class="text-3xl font-extrabold mt-1">€ 0.00</h2>
+        <span class="text-xs uppercase font-semibold text-blue-200 tracking-wider">Totale Generale Da Rimborsare</span>
+        <h2 id="grand-total" class="text-3xl sm:text-4xl font-black mt-1">€ 0.00</h2>
       </div>
       <div class="text-right">
-        <span id="trip-count" class="text-xs opacity-80">0 Trasferte</span>
-        <div id="sync-status" class="text-[10px] opacity-70 mt-1">Inizializzazione...</div>
+        <span id="trip-count" class="text-xs font-medium text-blue-200 block">0 Trasferte</span>
+        <div id="sync-status" class="text-[10px] text-blue-300 mt-1 font-mono">Inizializzazione...</div>
       </div>
     </div>
 
@@ -46,19 +46,74 @@
     <div id="trips-container" class="space-y-6"></div>
   </div>
 
+  <!-- MODALE: Nuova Trasferta -->
+  <div id="trip-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 class="text-lg font-bold text-gray-900">Crea Nuova Trasferta</h3>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome Trasferta</label>
+        <input type="text" id="trip-title-input" placeholder="es. Trasferta Milano / Chilometri Settimana" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeTripModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
+        <button onclick="saveTripFromModal()" class="px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition">Crea Trasferta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE: Nuova Spesa / Chilometri -->
+  <div id="expense-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 class="text-lg font-bold text-gray-900">Aggiungi Spesa / Chilometri</h3>
+      <input type="hidden" id="modal-trip-id">
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Data</label>
+          <input type="date" id="expense-date-input" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Descrizione / Tratta</label>
+          <input type="text" id="expense-name-input" placeholder="es. Percorso Limbiate - Sede (120 km)" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Importo (€)</label>
+          <input type="number" step="0.01" id="expense-amount-input" placeholder="0.00" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeExpenseModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
+        <button onclick="saveExpenseFromModal()" class="px-4 py-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm transition">Aggiungi Spesa</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // CONFIGURAZIONE DATABASE CLOUD (JSONBin.io)
-    const JSONBIN_BIN_ID = "6a9d97fbda38895dfe405d1b";
-    const JSONBIN_API_KEY = "$2a$10$q23.QIS.SieOcelJfYM/6ukMPOcQNjeq1rEjrbtMSA9yQMtRI1jyW";
+    const JSONBIN_BIN_ID = "IL_TUO_BIN_ID";
+    const JSONBIN_API_KEY = "LA_TUA_API_KEY";
 
     let data = [];
+    let currentFilter = {}; // Filtro di visualizzazione per ciascuna trasferta (all, pending, paid)
 
-    // Carica dati dal Cloud all'avvio
+    // Formattatore Data da YYYY-MM-DD a DD/MM/YYYY per la visualizzazione
+    function formatDateToDisplay(isoDateStr) {
+      if (!isoDateStr) return '';
+      const parts = isoDateStr.split('-');
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return isoDateStr;
+    }
+
     async function loadDataFromCloud() {
-      updateSyncStatus("Sincronizzazione in corso...");
+      updateSyncStatus("Sincronizzazione...");
       if (!JSONBIN_BIN_ID || JSONBIN_BIN_ID === "IL_TUO_BIN_ID") {
         data = JSON.parse(localStorage.getItem('rimborsi')) || [];
-        updateSyncStatus("Modalità Locale (Configura Cloud)");
+        updateSyncStatus("Modalità Locale");
         render();
         return;
       }
@@ -69,7 +124,6 @@
         });
         const json = await res.json();
         
-        // Estrazione flessibile dati (supporta sia array sia oggetto { rimborsi: [...] })
         let record = json.record;
         if (record && record.rimborsi && Array.isArray(record.rimborsi)) {
           data = record.rimborsi;
@@ -79,7 +133,6 @@
           data = [];
         }
 
-        // Se il Cloud è ancora vuoto ma c'erano dati salvati in locale, sincronizza i dati locali sul Cloud
         const localData = JSON.parse(localStorage.getItem('rimborsi')) || [];
         if (data.length === 0 && localData.length > 0) {
           data = localData;
@@ -91,14 +144,13 @@
         updateSyncStatus("Sincronizzato ✓");
         render();
       } catch (err) {
-        console.error("Errore caricamento cloud:", err);
+        console.error("Errore cloud:", err);
         data = JSON.parse(localStorage.getItem('rimborsi')) || [];
-        updateSyncStatus("Errore Sync (Uso dati locali)");
+        updateSyncStatus("Errore Sync (Dati Locali)");
         render();
       }
     }
 
-    // Salva dati sia in locale che sul Cloud
     async function saveData() {
       localStorage.setItem('rimborsi', JSON.stringify(data));
       render();
@@ -116,8 +168,8 @@
           });
           updateSyncStatus("Sincronizzato ✓");
         } catch (err) {
-          console.error("Errore salvataggio cloud:", err);
-          updateSyncStatus("Errore Salvataggio Cloud");
+          console.error("Errore salvataggio:", err);
+          updateSyncStatus("Errore Salvataggio");
         }
       }
     }
@@ -126,11 +178,24 @@
       document.getElementById('sync-status').innerText = msg;
     }
 
-    function addTrip() {
-      const title = prompt("Nome della Trasferta (es. Trasferta Milano):");
-      if (title && title.trim() !== "") {
-        data.push({ id: Date.now(), title: title.trim(), expenses: [] });
+    // GESTIONE MODALE TRASFERTA
+    function openTripModal() {
+      document.getElementById('trip-title-input').value = '';
+      document.getElementById('trip-modal').classList.remove('hidden');
+      document.getElementById('trip-modal').classList.add('flex');
+    }
+
+    function closeTripModal() {
+      document.getElementById('trip-modal').classList.add('hidden');
+      document.getElementById('trip-modal').classList.remove('flex');
+    }
+
+    function saveTripFromModal() {
+      const title = document.getElementById('trip-title-input').value.trim();
+      if (title) {
+        data.push({ id: Date.now(), title: title, expenses: [] });
         saveData();
+        closeTripModal();
       }
     }
 
@@ -141,36 +206,51 @@
       }
     }
 
-    function parseDate(dateStr) {
-      if (!dateStr) return new Date(0);
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-      return new Date(0);
+    // GESTIONE MODALE SPESA
+    function openExpenseModal(tripId) {
+      document.getElementById('modal-trip-id').value = tripId;
+      document.getElementById('expense-name-input').value = '';
+      document.getElementById('expense-amount-input').value = '';
+      
+      // Imposta la data odierna come default in formato YYYY-MM-DD
+      const todayISO = new Date().toISOString().split('T')[0];
+      document.getElementById('expense-date-input').value = todayISO;
+
+      document.getElementById('expense-modal').classList.remove('hidden');
+      document.getElementById('expense-modal').classList.add('flex');
     }
 
-    function addExpense(tripId) {
-      const name = prompt("Descrizione Spesa (es. Pranzo, Treno, Hotel):");
-      if (!name || name.trim() === "") return;
-      
-      const amountStr = prompt("Importo (€):");
-      const amount = parseFloat(amountStr ? amountStr.replace(',', '.') : 0);
+    function closeExpenseModal() {
+      document.getElementById('expense-modal').classList.add('hidden');
+      document.getElementById('expense-modal').classList.remove('flex');
+    }
+
+    function saveExpenseFromModal() {
+      const tripId = parseInt(document.getElementById('modal-trip-id').value);
+      const name = document.getElementById('expense-name-input').value.trim();
+      const amount = parseFloat(document.getElementById('expense-amount-input').value);
+      const isoDate = document.getElementById('expense-date-input').value;
+
+      if (!name) {
+        alert("Inserisci una descrizione.");
+        return;
+      }
       if (isNaN(amount) || amount <= 0) {
         alert("Inserisci un importo valido.");
         return;
       }
 
-      const today = new Date();
-      const defaultDate = String(today.getDate()).padStart(2, '0') + '/' + String(today.getMonth() + 1).padStart(2, '0') + '/' + today.getFullYear();
-      
-      const dateStr = prompt("Data della spesa (GG/MM/AAAA):", defaultDate);
-      const date = dateStr && dateStr.trim() !== "" ? dateStr.trim() : defaultDate;
-
       const trip = data.find(t => t.id === tripId);
       if (trip) {
-        trip.expenses.push({ id: Date.now(), date: date, name: name.trim(), amount: amount, paid: false });
+        trip.expenses.push({ 
+          id: Date.now(), 
+          date: isoDate, 
+          name: name, 
+          amount: amount, 
+          paid: false 
+        });
         saveData();
+        closeExpenseModal();
       }
     }
 
@@ -186,13 +266,16 @@
     }
 
     function deleteExpense(tripId, expenseId) {
-      if (confirm("Vuoi eliminare questa singola spesa?")) {
-        const trip = data.find(t => t.id === tripId);
-        if (trip) {
-          trip.expenses = trip.expenses.filter(e => e.id !== expenseId);
-          saveData();
-        }
+      const trip = data.find(t => t.id === tripId);
+      if (trip) {
+        trip.expenses = trip.expenses.filter(e => e.id !== expenseId);
+        saveData();
       }
+    }
+
+    function setFilter(tripId, filterType) {
+      currentFilter[tripId] = filterType;
+      render();
     }
 
     function render() {
@@ -205,36 +288,43 @@
         const tripTotal = pendingExpenses.reduce((s, e) => s + e.amount, 0);
         grandTotal += tripTotal;
 
-        trip.expenses.sort((a, b) => parseDate(a.date) - parseDate(b.date));
+        // Ordinamento per data (dalla più recente alla più vecchia o viceversa)
+        trip.expenses.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+        // Filtro delle spese da visualizzare
+        const filter = currentFilter[trip.id] || 'all';
+        let visibleExpenses = trip.expenses;
+        if (filter === 'pending') visibleExpenses = trip.expenses.filter(e => !e.paid);
+        if (filter === 'paid') visibleExpenses = trip.expenses.filter(e => e.paid);
 
         const tripEl = document.createElement('div');
-        tripEl.className = 'bg-white rounded-xl shadow border border-gray-200 overflow-hidden';
+        tripEl.className = 'bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden';
 
         let listHtml = '';
-        if (trip.expenses.length === 0) {
-          listHtml = '<p class="text-gray-400 text-xs italic p-3">Nessuna spesa inserita.</p>';
+        if (visibleExpenses.length === 0) {
+          listHtml = '<p class="text-gray-400 text-xs italic p-4 text-center">Nessuna spesa da mostrare.</p>';
         } else {
           listHtml = `
             <ul class="divide-y divide-gray-100 text-sm">
-              ${trip.expenses.map(e => `
-                <li class="p-3 flex justify-between items-center gap-2 ${e.paid ? 'bg-gray-50' : ''}">
+              ${visibleExpenses.map(e => `
+                <li class="p-3.5 flex justify-between items-center gap-3 transition ${e.paid ? 'bg-gray-50/70 opacity-60' : 'hover:bg-gray-50/50'}">
                   <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 overflow-hidden">
-                    <span class="text-xs text-gray-400 font-mono shrink-0">${e.date || ''}</span>
-                    <span class="${e.paid ? 'line-through text-gray-400' : 'text-gray-800 font-medium'} truncate">${e.name}</span>
+                    <span class="text-xs text-gray-500 font-mono shrink-0 bg-gray-100 px-2 py-0.5 rounded-md">${formatDateToDisplay(e.date)}</span>
+                    <span class="${e.paid ? 'line-through text-gray-500' : 'text-gray-900 font-medium'} truncate">${e.name}</span>
                   </div>
                   <div class="flex items-center gap-2 sm:gap-3 shrink-0">
-                    <b class="${e.paid ? 'text-gray-400 line-through' : 'text-gray-900'}">€ ${e.amount.toFixed(2)}</b>
+                    <b class="${e.paid ? 'text-gray-400 line-through' : 'text-gray-900'} text-base">€ ${e.amount.toFixed(2)}</b>
                     
                     <button onclick="togglePaid(${trip.id}, ${e.id})" 
-                      class="text-xs font-semibold px-2 py-1 rounded transition ${
+                      class="text-xs font-semibold px-2.5 py-1 rounded-lg transition ${
                         e.paid 
-                          ? 'bg-green-100 text-green-700 border border-green-300' 
-                          : 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                          : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
                       }">
-                      ${e.paid ? '✓ Pagato' : '⏳ Non Pagato'}
+                      ${e.paid ? '✓ Pagato' : '⏳ Da Saldare'}
                     </button>
 
-                    <button onclick="deleteExpense(${trip.id}, ${e.id})" title="Elimina spesa" class="text-red-500 hover:text-red-700 hover:bg-red-50 font-bold text-base px-2 py-0.5 rounded transition">&times;</button>
+                    <button onclick="deleteExpense(${trip.id}, ${e.id})" title="Elimina spesa" class="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1 rounded-lg transition text-lg leading-none">&times;</button>
                   </div>
                 </li>
               `).join('')}
@@ -243,19 +333,30 @@
         }
 
         tripEl.innerHTML = `
-          <div class="bg-gray-800 text-white p-3.5 flex justify-between items-center">
-            <h3 class="font-bold text-base">${trip.title}</h3>
-            <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition">Elimina Trasferta</button>
+          <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
+            <h3 class="font-bold text-base tracking-wide">${trip.title}</h3>
+            <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-500/20 hover:bg-red-600 text-red-200 hover:text-white px-2.5 py-1 rounded-lg transition">Elimina</button>
           </div>
-          <div class="p-4 space-y-3">
+          <div class="p-4 space-y-4">
+            
+            <!-- Barra Filtri Stato Spese -->
+            <div class="flex justify-between items-center text-xs border-b border-gray-100 pb-2 flex-wrap gap-2">
+              <div class="flex gap-1 bg-gray-100 p-1 rounded-xl">
+                <button onclick="setFilter(${trip.id}, 'all')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Tutte (${trip.expenses.length})</button>
+                <button onclick="setFilter(${trip.id}, 'pending')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'pending' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Da Saldare (${pendingExpenses.length})</button>
+                <button onclick="setFilter(${trip.id}, 'paid')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'paid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Pagate (${trip.expenses.length - pendingExpenses.length})</button>
+              </div>
+            </div>
+
             ${listHtml}
-            <div class="pt-3 border-t flex justify-between items-center flex-wrap gap-2">
-              <button onclick="addExpense(${trip.id})" class="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition">
-                + Aggiungi Spesa
+
+            <div class="pt-2 flex justify-between items-center flex-wrap gap-2">
+              <button onclick="openExpenseModal(${trip.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow-sm">
+                + Aggiungi Spesa / Km
               </button>
               <div class="text-right">
-                <span class="text-xs text-gray-500 font-semibold uppercase">Da Rimborsare:</span>
-                <span class="text-lg font-bold text-blue-600 ml-1">€ ${tripTotal.toFixed(2)}</span>
+                <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider block">Da Rimborsare:</span>
+                <span class="text-xl font-extrabold text-blue-600">€ ${tripTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -267,6 +368,12 @@
       document.getElementById('grand-total').innerText = '€ ' + grandTotal.toFixed(2);
       document.getElementById('trip-count').innerText = data.length + ' Trasferte';
     }
+
+    // SINCRONIZZAZIONE AUTOMATICA IN BACKGROUND
+    // Si attiva ogni volta che si torna ad operare sulla pagina o app mobile
+    window.addEventListener('focus', () => {
+      loadDataFromCloud();
+    });
 
     loadDataFromCloud();
   </script>
