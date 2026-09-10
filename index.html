@@ -46,7 +46,7 @@
     <div id="trips-container" class="space-y-6"></div>
   </div>
 
-  <!-- MODALE CREA TRASFERTA -->
+  <!-- MODALE PER CREARE UNA NUOVA TRASFERTA -->
   <div id="trip-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
       <h3 class="text-lg font-bold text-gray-900">Crea Nuova Trasferta</h3>
@@ -61,10 +61,35 @@
     </div>
   </div>
 
-  <!-- MODALE MODIFICA SPESA -->
+  <!-- MODALE PER AGGIUNGERE NUOVA SPESA (IL POPUP VERDE ORIGINALE) -->
+  <div id="expense-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
+      <h3 class="text-lg font-bold text-gray-900">Aggiungi Nuova Spesa</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Data</label>
+          <input type="date" id="new-expense-date" onclick="triggerDatePicker(this)" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Descrizione / Tratta</label>
+          <input type="text" id="new-expense-name" placeholder="es. Limbiate-Sede 80km" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Importo €</label>
+          <input type="number" step="0.01" id="new-expense-amount" placeholder="0.00" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeExpenseModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
+        <button onclick="saveExpenseFromModal()" class="px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-sm transition">Salva Spesa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE PER MODIFICARE SPESA GIÀ ESISTENTE -->
   <div id="edit-expense-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-      <h3 class="text-lg font-bold text-gray-900">Modifica Spesa</h3>
+      <h3 class="text-lg font-bold text-gray-900">Modifica Spesa Esistente</h3>
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Data</label>
@@ -93,6 +118,7 @@
 
     let data = [];
     let currentFilter = {};
+    let activeTripForNewExpense = null;
     let editingState = { tripId: null, expenseId: null };
 
     function formatDateToDisplay(isoDateStr) {
@@ -216,10 +242,28 @@
       }
     }
 
-    function addInlineExpense(tripId) {
-      const dateVal = document.getElementById(`inline-date-${tripId}`).value;
-      const nameVal = document.getElementById(`inline-name-${tripId}`).value.trim();
-      const amountVal = parseFloat(document.getElementById(`inline-amount-${tripId}`).value);
+    // CREA NUOVA SPESA (POPUP CON PULSANTE VERDE)
+    function openExpenseModal(tripId) {
+      activeTripForNewExpense = tripId;
+      document.getElementById('new-expense-date').value = getTodayISO();
+      document.getElementById('new-expense-name').value = '';
+      document.getElementById('new-expense-amount').value = '';
+      document.getElementById('expense-modal').classList.remove('hidden');
+      document.getElementById('expense-modal').classList.add('flex');
+    }
+
+    function closeExpenseModal() {
+      activeTripForNewExpense = null;
+      document.getElementById('expense-modal').classList.add('hidden');
+      document.getElementById('expense-modal').classList.remove('flex');
+    }
+
+    function saveExpenseFromModal() {
+      if (!activeTripForNewExpense) return;
+
+      const dateVal = document.getElementById('new-expense-date').value;
+      const nameVal = document.getElementById('new-expense-name').value.trim();
+      const amountVal = parseFloat(document.getElementById('new-expense-amount').value);
 
       if (!nameVal) {
         alert("Inserisci una descrizione o tratta per la spesa.");
@@ -230,7 +274,7 @@
         return;
       }
 
-      const trip = data.find(t => t.id === tripId);
+      const trip = data.find(t => t.id === activeTripForNewExpense);
       if (trip) {
         trip.expenses.push({ 
           id: Date.now(), 
@@ -240,10 +284,11 @@
           paid: false 
         });
         saveData();
+        closeExpenseModal();
       }
     }
 
-    // MODIFICA SPESA
+    // MODIFICA SPESA GIÀ ESISTENTE
     function openEditExpenseModal(tripId, expenseId) {
       const trip = data.find(t => t.id === tripId);
       if (!trip) return;
@@ -398,17 +443,11 @@
             <!-- Lista Spese Registrate -->
             ${listHtml}
 
-            <!-- MODULO INTEGRATO CON CAMPO DATA RIDIMENSIONATO CORRETTAMENTE -->
-            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200/80 space-y-2 mt-2">
-              <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block px-1">Aggiungi nuova spesa / tratta</span>
-              <div class="flex flex-col sm:flex-row gap-2">
-                <input type="date" id="inline-date-${trip.id}" value="${getTodayISO()}" onclick="triggerDatePicker(this)" class="w-full sm:w-36 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer shrink-0">
-                <input type="text" id="inline-name-${trip.id}" placeholder="Tratta o descrizione (es. Limbiate-Sede 80km)" class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <input type="number" step="0.01" id="inline-amount-${trip.id}" placeholder="Importo €" class="w-full sm:w-28 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0">
-                <button onclick="addInlineExpense(${trip.id})" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-sm shrink-0">
-                  + Salva
-                </button>
-              </div>
+            <!-- PULSANTE ORIGINALE VERDE "+ AGGIUNGI SPESA" -->
+            <div class="pt-2">
+              <button onclick="openExpenseModal(${trip.id})" class="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs py-2.5 px-4 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5">
+                <span>+</span> Aggiungi Spesa
+              </button>
             </div>
 
           </div>
