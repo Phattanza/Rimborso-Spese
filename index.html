@@ -319,13 +319,13 @@
             <!-- Lista Spese Registrate -->
             ${listHtml}
 
-            <!-- MODULO INTEGRATO CON CALENDARIO POPUP AUTOMATICO -->
+            <!-- MODULO INTEGRATO CON CAMPO DATA RIDIMENSIONATO CORRETTAMENTE -->
             <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200/80 space-y-2 mt-2">
               <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block px-1">Aggiungi nuova spesa / tratta</span>
               <div class="flex flex-col sm:flex-row gap-2">
-                <input type="date" id="inline-date-${trip.id}" value="${getTodayISO()}" onclick="triggerDatePicker(this)" class="border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer">
-                <input type="text" id="inline-name-${trip.id}" placeholder="Tratta o descrizione (es. Limbiate-Sede 80km)" class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <input type="number" step="0.01" id="inline-amount-${trip.id}" placeholder="Importo €" class="w-full sm:w-28 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <input type="date" id="inline-date-${trip.id}" value="${getTodayISO()}" onclick="triggerDatePicker(this)" class="w-full sm:w-36 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer shrink-0">
+                <input type="text" id="inline-name-${trip.id}" placeholder="Tratta o descrizione (es. Limbiate-Sede 80km)" class="flex-1 min-w-0 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <input type="number" step="0.01" id="inline-amount-${trip.id}" placeholder="Importo €" class="w-full sm:w-28 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shrink-0">
                 <button onclick="addInlineExpense(${trip.id})" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-sm shrink-0">
                   + Salva
                 </button>
