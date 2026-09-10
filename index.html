@@ -21,7 +21,7 @@
         <p class="text-xs text-gray-500 mt-0.5">Traccia chilometri e rimborsi aziendali</p>
       </div>
       <div class="flex items-center gap-2">
-        <button onclick="loadDataFromCloud()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-3 py-2 rounded-xl text-xs transition flex items-center gap-1">
+        <button onclick="loadDataFromCloud()" class="bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-medium px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1">
           🔄 Sync
         </button>
         <button onclick="openTripModal()" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold px-4 py-2 rounded-xl text-sm transition shadow-sm">
@@ -46,47 +46,17 @@
     <div id="trips-container" class="space-y-6"></div>
   </div>
 
-  <!-- MODALE: Nuova Trasferta -->
+  <!-- MODALE PER CREARE UNA NUOVA TRASFERTA -->
   <div id="trip-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
       <h3 class="text-lg font-bold text-gray-900">Crea Nuova Trasferta</h3>
       <div>
-        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome Trasferta</label>
-        <input type="text" id="trip-title-input" placeholder="es. Trasferta Milano / Chilometri Settimana" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Nome Trasferta / Periodo</label>
+        <input type="text" id="trip-title-input" placeholder="es. Trasferta Milano / Settimana 36" class="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeTripModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
         <button onclick="saveTripFromModal()" class="px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition">Crea Trasferta</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODALE: Nuova Spesa / Chilometri -->
-  <div id="expense-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-      <h3 class="text-lg font-bold text-gray-900">Aggiungi Spesa / Chilometri</h3>
-      <input type="hidden" id="modal-trip-id">
-      
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Data</label>
-          <input type="date" id="expense-date-input" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Descrizione / Tratta</label>
-          <input type="text" id="expense-name-input" placeholder="es. Percorso Limbiate - Sede (120 km)" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-600 uppercase mb-1">Importo (€)</label>
-          <input type="number" step="0.01" id="expense-amount-input" placeholder="0.00" class="w-full border border-gray-300 rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeExpenseModal()" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Annulla</button>
-        <button onclick="saveExpenseFromModal()" class="px-4 py-2 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm transition">Aggiungi Spesa</button>
       </div>
     </div>
   </div>
@@ -97,9 +67,8 @@
     const JSONBIN_API_KEY = "$2a$10$q23.QIS.SieOcelJfYM/6ukMPOcQNjeq1rEjrbtMSA9yQMtRI1jyW";
 
     let data = [];
-    let currentFilter = {}; // Filtro di visualizzazione per ciascuna trasferta (all, pending, paid)
+    let currentFilter = {};
 
-    // Formattatore Data da YYYY-MM-DD a DD/MM/YYYY per la visualizzazione
     function formatDateToDisplay(isoDateStr) {
       if (!isoDateStr) return '';
       const parts = isoDateStr.split('-');
@@ -107,6 +76,10 @@
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
       }
       return isoDateStr;
+    }
+
+    function getTodayISO() {
+      return new Date().toISOString().split('T')[0];
     }
 
     async function loadDataFromCloud() {
@@ -178,7 +151,6 @@
       document.getElementById('sync-status').innerText = msg;
     }
 
-    // GESTIONE MODALE TRASFERTA
     function openTripModal() {
       document.getElementById('trip-title-input').value = '';
       document.getElementById('trip-modal').classList.remove('hidden');
@@ -206,36 +178,29 @@
       }
     }
 
-    // GESTIONE MODALE SPESA
-    function openExpenseModal(tripId) {
-      document.getElementById('modal-trip-id').value = tripId;
-      document.getElementById('expense-name-input').value = '';
-      document.getElementById('expense-amount-input').value = '';
-      
-      // Imposta la data odierna come default in formato YYYY-MM-DD
-      const todayISO = new Date().toISOString().split('T')[0];
-      document.getElementById('expense-date-input').value = todayISO;
-
-      document.getElementById('expense-modal').classList.remove('hidden');
-      document.getElementById('expense-modal').classList.add('flex');
+    // Funzione per aprire automaticamente il calendario nativo al click sul campo data
+    function triggerDatePicker(inputElem) {
+      if ('showPicker' in HTMLInputElement.prototype) {
+        try {
+          inputElem.showPicker();
+        } catch (e) {
+          inputElem.focus();
+        }
+      } else {
+        inputElem.focus();
+      }
     }
 
-    function closeExpenseModal() {
-      document.getElementById('expense-modal').classList.add('hidden');
-      document.getElementById('expense-modal').classList.remove('flex');
-    }
+    function addInlineExpense(tripId) {
+      const dateVal = document.getElementById(`inline-date-${tripId}`).value;
+      const nameVal = document.getElementById(`inline-name-${tripId}`).value.trim();
+      const amountVal = parseFloat(document.getElementById(`inline-amount-${tripId}`).value);
 
-    function saveExpenseFromModal() {
-      const tripId = parseInt(document.getElementById('modal-trip-id').value);
-      const name = document.getElementById('expense-name-input').value.trim();
-      const amount = parseFloat(document.getElementById('expense-amount-input').value);
-      const isoDate = document.getElementById('expense-date-input').value;
-
-      if (!name) {
-        alert("Inserisci una descrizione.");
+      if (!nameVal) {
+        alert("Inserisci una descrizione o tratta per la spesa.");
         return;
       }
-      if (isNaN(amount) || amount <= 0) {
+      if (isNaN(amountVal) || amountVal <= 0) {
         alert("Inserisci un importo valido.");
         return;
       }
@@ -244,13 +209,12 @@
       if (trip) {
         trip.expenses.push({ 
           id: Date.now(), 
-          date: isoDate, 
-          name: name, 
-          amount: amount, 
+          date: dateVal || getTodayISO(), 
+          name: nameVal, 
+          amount: amountVal, 
           paid: false 
         });
         saveData();
-        closeExpenseModal();
       }
     }
 
@@ -288,10 +252,8 @@
         const tripTotal = pendingExpenses.reduce((s, e) => s + e.amount, 0);
         grandTotal += tripTotal;
 
-        // Ordinamento per data (dalla più recente alla più vecchia o viceversa)
         trip.expenses.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-        // Filtro delle spese da visualizzare
         const filter = currentFilter[trip.id] || 'all';
         let visibleExpenses = trip.expenses;
         if (filter === 'pending') visibleExpenses = trip.expenses.filter(e => !e.paid);
@@ -302,7 +264,7 @@
 
         let listHtml = '';
         if (visibleExpenses.length === 0) {
-          listHtml = '<p class="text-gray-400 text-xs italic p-4 text-center">Nessuna spesa da mostrare.</p>';
+          listHtml = '<p class="text-gray-400 text-xs italic p-4 text-center">Nessuna spesa inserita.</p>';
         } else {
           listHtml = `
             <ul class="divide-y divide-gray-100 text-sm">
@@ -333,32 +295,43 @@
         }
 
         tripEl.innerHTML = `
+          <!-- Header Trasferta -->
           <div class="bg-gray-900 text-white p-4 flex justify-between items-center">
             <h3 class="font-bold text-base tracking-wide">${trip.title}</h3>
             <button onclick="deleteTrip(${trip.id})" class="text-xs bg-red-500/20 hover:bg-red-600 text-red-200 hover:text-white px-2.5 py-1 rounded-lg transition">Elimina</button>
           </div>
+          
           <div class="p-4 space-y-4">
             
-            <!-- Barra Filtri Stato Spese -->
+            <!-- Filtri Stato Spese -->
             <div class="flex justify-between items-center text-xs border-b border-gray-100 pb-2 flex-wrap gap-2">
               <div class="flex gap-1 bg-gray-100 p-1 rounded-xl">
                 <button onclick="setFilter(${trip.id}, 'all')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'all' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Tutte (${trip.expenses.length})</button>
                 <button onclick="setFilter(${trip.id}, 'pending')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'pending' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Da Saldare (${pendingExpenses.length})</button>
                 <button onclick="setFilter(${trip.id}, 'paid')" class="px-2.5 py-1 rounded-lg font-medium transition ${filter === 'paid' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}">Pagate (${trip.expenses.length - pendingExpenses.length})</button>
               </div>
-            </div>
-
-            ${listHtml}
-
-            <div class="pt-2 flex justify-between items-center flex-wrap gap-2">
-              <button onclick="openExpenseModal(${trip.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl transition shadow-sm">
-                + Aggiungi Spesa / Km
-              </button>
-              <div class="text-right">
-                <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider block">Da Rimborsare:</span>
-                <span class="text-xl font-extrabold text-blue-600">€ ${tripTotal.toFixed(2)}</span>
+              <div>
+                <span class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Da Rimborsare: </span>
+                <span class="text-base font-extrabold text-blue-600">€ ${tripTotal.toFixed(2)}</span>
               </div>
             </div>
+
+            <!-- Lista Spese Registrate -->
+            ${listHtml}
+
+            <!-- MODULO INTEGRATO CON CALENDARIO POPUP AUTOMATICO -->
+            <div class="bg-gray-50 p-3 rounded-2xl border border-gray-200/80 space-y-2 mt-2">
+              <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block px-1">Aggiungi nuova spesa / tratta</span>
+              <div class="flex flex-col sm:flex-row gap-2">
+                <input type="date" id="inline-date-${trip.id}" value="${getTodayISO()}" onclick="triggerDatePicker(this)" class="border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white cursor-pointer">
+                <input type="text" id="inline-name-${trip.id}" placeholder="Tratta o descrizione (es. Limbiate-Sede 80km)" class="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <input type="number" step="0.01" id="inline-amount-${trip.id}" placeholder="Importo €" class="w-full sm:w-28 border border-gray-300 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <button onclick="addInlineExpense(${trip.id})" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-sm shrink-0">
+                  + Salva
+                </button>
+              </div>
+            </div>
+
           </div>
         `;
 
@@ -369,8 +342,6 @@
       document.getElementById('trip-count').innerText = data.length + ' Trasferte';
     }
 
-    // SINCRONIZZAZIONE AUTOMATICA IN BACKGROUND
-    // Si attiva ogni volta che si torna ad operare sulla pagina o app mobile
     window.addEventListener('focus', () => {
       loadDataFromCloud();
     });
